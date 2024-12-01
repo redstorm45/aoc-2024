@@ -13,7 +13,7 @@ do
 done
 
 
-echo "\nTiming programs..."
+printf "\nTiming programs..."
 for i in $(seq 1 $PROGCOUNT)
 do
 	p=$(printf "%02d" $i)
@@ -22,7 +22,7 @@ do
 	\time --format="[$p] %E" -o $outfile -a "./${dirname}/target/debug/${dirname}" "./${dirname}/input"
 done
 
-echo "\nTimes:"
+printf "\nTimes:"
 cat $outfile
 
 rm $outfile
