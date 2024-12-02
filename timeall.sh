@@ -13,16 +13,16 @@ do
 done
 
 
-printf "\nTiming programs..."
+printf "\nTiming programs...\n"
 for i in $(seq 1 $PROGCOUNT)
 do
 	p=$(printf "%02d" $i)
 	dirname="aoc${p}"
 	echo "Running [$p]"
-	\time --format="[$p] %E" -o $outfile -a "./${dirname}/target/debug/${dirname}" "./${dirname}/input"
+	\time --format="[$p] %e" -o $outfile -a "./${dirname}/target/debug/${dirname}" "./${dirname}/input"
 done
 
-printf "\nTimes:"
+printf "\nTimes:\n"
 cat $outfile
 
 rm $outfile
