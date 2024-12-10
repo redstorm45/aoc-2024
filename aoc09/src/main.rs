@@ -3,7 +3,7 @@ use std::fs;
 use std::env;
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 struct FileInfo {
     id: usize,
     position: usize,
@@ -34,10 +34,13 @@ fn main() {
         .expect("Should have been able to read the file");
 
     let disk = parse_disk_description(&contents);
-    let merged_disk = merge_blocks(disk);
-    let checksum = compute_checksum(&merged_disk);
+    let merged_disk = merge_blocks(disk.clone());
+    let checksum1 = compute_checksum(&merged_disk);
+    let moved_disk = move_blocks(disk);
+    let checksum2 = compute_checksum(&moved_disk);
 
-    println!("Result: {}", checksum);
+    println!("Result: {}", checksum1);
+    println!("Result: {}", checksum2);
 }
 
 fn parse_disk_description(txt: &str) -> Vec<FileInfo> {
@@ -104,8 +107,51 @@ fn merge_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
     res
 }
 
+fn insert_block(disk: &mut Vec<FileInfo>, to_add: FileInfo) {
+    let first_greatest = disk.iter().position(|f| f.position > to_add.position);
+    if let Some(index) = first_greatest {
+        disk.insert(index, to_add);
+    } else {
+        disk.push(to_add);
+    }
+}
+
 fn move_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
-    
+    let mut holes: Vec<FileInfo> = vec![];
+    let mut position = 0;
+    for block in source.iter() {
+        if block.position > position {
+            holes.push(FileInfo{
+                id: 0,
+                position: position,
+                size: block.position - position
+            });
+        }
+        position = block.position + block.size;
+    }
+
+    let mut res = vec![];
+    for src_block in source.iter().rev() {
+        let prev_holes = holes.iter_mut().filter(|h| h.position < src_block.position && h.get_end() <= src_block.position);
+        if let Some((hole_index, hole)) = prev_holes.enumerate().filter(|(_,h)| h.size >= src_block.size).next() {
+            // block can be moved
+            let new_block = FileInfo{
+                position: hole.position,
+                id: src_block.id,
+                size: src_block.size
+            };
+            insert_block(&mut res, new_block);
+            if hole.size > src_block.size {
+                hole.position += src_block.size;
+                hole.size -= src_block.size;
+            } else {
+                holes.remove(hole_index);
+            }
+        } else {
+            insert_block(&mut res, src_block.clone());
+        }
+    }
+    res
 }
 
 fn compute_checksum(src: &[FileInfo]) -> usize {
