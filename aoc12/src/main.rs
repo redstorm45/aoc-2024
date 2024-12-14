@@ -33,7 +33,7 @@ where T: Eq, T: std::hash::Hash, T: Clone
     if a == b {
         return a;
     }
-    println!("Merge groups {} and {}", a, b);
+    //println!("Merge groups {} and {}", a, b);
     let target_group = a.min(b);
     let source_group = a.max(b);
 
@@ -127,7 +127,7 @@ fn sides(region: &HashSet<(usize,usize)>) -> usize {
             }
         }
     }
-    println!("Segments of {:?} : {:?}", region, segments);
+    //println!("Segments of {:?} : {:?}", region, segments);
     
     let mut res = 0;
     while !segments.is_empty() {
@@ -141,13 +141,11 @@ fn sides(region: &HashSet<(usize,usize)>) -> usize {
             while segments.contains(&(farthest_left.0-1, farthest_left.1, one_seg.2)) {
                 farthest_left = (farthest_left.0-1, farthest_left.1, one_seg.2);
                 segments.remove(&farthest_left);
-                seg_length += 1;
             }
             // then right
             while segments.contains(&(farthest_right.0+1, farthest_right.1, one_seg.2)) {
                 farthest_right = (farthest_right.0+1, farthest_right.1, one_seg.2);
                 segments.remove(&farthest_right);
-                seg_length += 1;
             }
         }
         else if one_seg.2 == Direction::Left || one_seg.2 == Direction::Right {
@@ -157,16 +155,14 @@ fn sides(region: &HashSet<(usize,usize)>) -> usize {
             while segments.contains(&(farthest_up.0, farthest_up.1-1, one_seg.2)) {
                 farthest_up = (farthest_up.0, farthest_up.1-1, one_seg.2);
                 segments.remove(&farthest_up);
-                seg_length += 1;
             }
             // then right
             while segments.contains(&(farthest_down.0, farthest_down.1+1, one_seg.2)) {
                 farthest_down = (farthest_down.0, farthest_down.1+1, one_seg.2);
                 segments.remove(&farthest_down);
-                seg_length += 1;
             }
         }
-        res += seg_length;
+        res += 1;
     }
     res
 }
