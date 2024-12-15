@@ -1,6 +1,12 @@
 use std::fs;
 use std::env;
 use regex::Regex;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref RE_MOVE: Regex = Regex::new(r"Button (?:A|B): X\+(\d+), Y\+(\d+)").unwrap();
+    static ref RE_PRIZE: Regex = Regex::new(r"Prize: X=(\d+), Y=(\d+)").unwrap();
+}
 
 
 fn main() {
@@ -14,7 +20,7 @@ fn main() {
         .map(parse_claw_machine)
         .collect();
     let cost = machines.iter()
-            .filter_map(|m| get_inverse(&m))
+            .filter_map(get_inverse)
             .filter(|(a,b)| *a <= 100 && *b <= 100)
             .map(|(a,b)| 3*a+b)
             .sum::<usize>();
@@ -46,17 +52,14 @@ impl ClawMachine {
 }
 
 fn parse_claw_machine(s: &str) -> ClawMachine {
-    let re_move = Regex::new(r"Button (?:A|B): X\+(\d+), Y\+(\d+)").unwrap();
-    let re_prize = Regex::new(r"Prize: X=(\d+), Y=(\d+)").unwrap();
-
     let mut it = s.split('\n');
     let linea = it.next().unwrap();
     let lineb = it.next().unwrap();
     let linep = it.next().unwrap();
 
-    let (_, coords_a): (_, [&str; 2]) = re_move.captures(linea).unwrap().extract();
-    let (_, coords_b): (_, [&str; 2]) = re_move.captures(lineb).unwrap().extract();
-    let (_, coords_p): (_, [&str; 2]) = re_prize.captures(linep).unwrap().extract();
+    let (_, coords_a): (_, [&str; 2]) = RE_MOVE.captures(linea).unwrap().extract();
+    let (_, coords_b): (_, [&str; 2]) = RE_MOVE.captures(lineb).unwrap().extract();
+    let (_, coords_p): (_, [&str; 2]) = RE_PRIZE.captures(linep).unwrap().extract();
 
     ClawMachine{
         movea: (coords_a[0].parse().unwrap(), coords_a[1].parse().unwrap()),
