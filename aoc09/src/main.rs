@@ -11,7 +11,6 @@ struct FileInfo {
 }
 
 impl FileInfo {
-    fn get_end(&self) -> usize { self.position + self.size }
     fn split(&self, back_size: usize) -> (FileInfo, FileInfo) {
         // Split this into a front and a back part each with same id
         (FileInfo{
@@ -86,7 +85,7 @@ fn merge_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
             last_position += inserted_block.size;
             res.push(inserted_block);
         } else if back_block.size <= space {
-            // nsert back block
+            // insert back block
             back_block.position = last_position;
             last_position += back_block.size;
             res.push(back_block);
@@ -114,13 +113,18 @@ fn insert_block(disk: &mut Vec<FileInfo>, to_add: FileInfo) {
 }
 
 fn move_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
-    let mut holes: Vec<FileInfo> = vec![];
+    let mut holes_by_size : Vec<Vec<FileInfo>> = vec![];
+
     let mut position = 0;
     for block in source.iter() {
         if block.position > position {
-            holes.push(FileInfo{
+            let size = block.position - position;
+            while holes_by_size.len() <= size {
+                holes_by_size.push(vec![]);
+            }
+            holes_by_size.get_mut(size).unwrap().push(FileInfo{
                 id: 0,
-                position: position,
+                position,
                 size: block.position - position
             });
         }
@@ -129,22 +133,50 @@ fn move_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
 
     let mut res = vec![];
     for src_block in source.iter().rev() {
-        let prev_holes = holes.iter_mut().filter(|h| h.position < src_block.position && h.get_end() <= src_block.position);
-        if let Some((hole_index, hole)) = prev_holes.enumerate().filter(|(_,h)| h.size >= src_block.size).next() {
-            // block can be moved
-            let new_block = FileInfo{
-                position: hole.position,
-                id: src_block.id,
-                size: src_block.size
-            };
-            insert_block(&mut res, new_block);
-            if hole.size > src_block.size {
-                hole.position += src_block.size;
-                hole.size -= src_block.size;
-            } else {
-                holes.remove(hole_index);
+        let mut inserted = false;
+        if src_block.size < holes_by_size.len() {
+            let mut best_hole: Option<&FileInfo> = None;
+            for hole_list in &holes_by_size[src_block.size..] {
+                // only the first hole is interesting (if it exists)
+                if let Some(first_hole) = hole_list.first() {
+                    // hole after current or worse than best is useless
+                    if first_hole.position < src_block.position && best_hole.is_some_and(|b| b.position > first_hole.position){
+                        best_hole = Some(first_hole);
+                    }
+                }
             }
-        } else {
+            if let Some(target_hole) = best_hole.cloned() {
+                // remove hole from list
+                let target_hole_list = holes_by_size.get_mut(target_hole.size).unwrap();
+                let index = target_hole_list.iter().position(|h| h.position==target_hole.position).unwrap();
+                target_hole_list.remove(index);
+                // create a new hole
+                let new_hole = FileInfo{
+                    position: target_hole.position + src_block.size,
+                    id: 0,
+                    size: target_hole.size - src_block.size
+                };
+                // insert the new hole
+                let new_hole_list = holes_by_size.get_mut(new_hole.size).unwrap();
+                let index_new = new_hole_list.binary_search_by_key(&new_hole.position, |h| h.position).expect_err("Duplicate hole index");
+                new_hole_list.insert(index_new, new_hole);
+                // shorten hole list if needed
+                if target_hole.size == holes_by_size.len() {
+                    while !holes_by_size.is_empty() && holes_by_size.last().unwrap().is_empty() {
+                        holes_by_size.pop();
+                    }
+                }
+                // insert the block
+                let new_block = FileInfo{
+                    position: target_hole.position,
+                    id: src_block.id,
+                    size: src_block.size
+                };
+                insert_block(&mut res, new_block);
+                inserted = true;
+            }
+        }
+        if !inserted {
             insert_block(&mut res, src_block.clone());
         }
     }
