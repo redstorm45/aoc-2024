@@ -23,16 +23,21 @@ fn main() {
         ))
         .collect();
 
-    let valid_std: i128 = equations
+    let (valid_eqs, invalid_eqs): (Vec<(i128,Vec<i128>)>,Vec<(i128,Vec<i128>)>) = equations.iter()
+        .cloned()
+        .partition(|(r, ops)| is_valid_equation(*r, ops, &[Operator::Add, Operator::Multiply]));
+
+    let valid_std: i128 = valid_eqs
         .iter()
-        .filter(|(r, ops)| is_valid_equation(*r, ops, &[Operator::Add, Operator::Multiply]))
         .map(|(r,_)| r)
         .sum();
-    let valid_comp: i128 = equations
+
+    let more_valid: i128 = invalid_eqs
         .iter()
         .filter(|(r, ops)| is_valid_equation(*r, ops, &[Operator::Add, Operator::Multiply, Operator::Concat]))
         .map(|(r,_)| r)
         .sum();
+    let valid_comp = valid_std + more_valid;
 
     println!("Result: {}", valid_std);
     println!("Result2: {}", valid_comp);
