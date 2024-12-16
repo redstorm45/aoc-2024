@@ -108,12 +108,9 @@ fn merge_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
 }
 
 fn insert_block(disk: &mut Vec<FileInfo>, to_add: FileInfo) {
-    let first_greatest = disk.iter().position(|f| f.position > to_add.position);
-    if let Some(index) = first_greatest {
-        disk.insert(index, to_add);
-    } else {
-        disk.push(to_add);
-    }
+    let res = disk.binary_search_by_key(&to_add.position, |f| f.position);
+    let first_greatest = res.expect_err("Duplicate index");
+    disk.insert(first_greatest, to_add);
 }
 
 fn move_blocks(source: Vec<FileInfo>) -> Vec<FileInfo> {
