@@ -74,7 +74,6 @@ fn get_inverse(m: &ClawMachine) -> Option<(usize,usize)> {
     if determinant == 0 {
         // both moves aligned
         panic!("Aligned moves");
-        None
     } else {
         let rowa = ((m.prize.0*m.moveb.1) as isize) - ((m.prize.1*m.moveb.0) as isize);
         let rowb = ((m.prize.1*m.movea.0) as isize) - ((m.prize.0*m.movea.1) as isize);

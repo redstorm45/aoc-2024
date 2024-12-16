@@ -1,3 +1,5 @@
+#![allow(clippy::comparison_chain)]
+
 use std::fs;
 use std::env;
 use std::collections::HashMap;
@@ -46,9 +48,6 @@ impl Map {
     }
     fn get_cell(&self, pos: (usize, usize)) -> Option<&Cell> {
         self.cells.get(pos.0).and_then(|row| row.get(pos.1))
-    }
-    fn get_cell_mut(&mut self, pos: (usize, usize)) -> Option<&mut Cell> {
-        self.cells.get_mut(pos.0).and_then(|row| row.get_mut(pos.1))
     }
 }
 
@@ -306,7 +305,7 @@ fn explored_from_infos(map: &Map, infos: &HashMap<((usize,usize),Direction), Exp
     let mut back_explored: HashSet<((usize,usize),Direction)> = HashSet::new();
     let mut wave : VecDeque<((usize,usize), Direction)> = VecDeque::new();
 
-    let mut end_vec: Vec<((usize,usize),Direction)> = infos.keys().filter(|e| e.0 == map.end).cloned().collect();
+    let end_vec: Vec<((usize,usize),Direction)> = infos.keys().filter(|e| e.0 == map.end).cloned().collect();
     let best_score = end_vec.iter().map(|k| infos.get(k).unwrap().distance).min().unwrap();
 
     for posdir in infos.keys().filter(|e| e.0 == map.end) {
@@ -320,7 +319,7 @@ fn explored_from_infos(map: &Map, infos: &HashMap<((usize,usize),Direction), Exp
         let explored = wave.pop_front().unwrap();
         let ancestors = &infos.get(&explored).unwrap().parents;
         for ancestor in ancestors {
-            if !back_explored.contains(&ancestor) {
+            if !back_explored.contains(ancestor) {
                 back_explored.insert(*ancestor);
                 wave.push_back(*ancestor);
             }

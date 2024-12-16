@@ -65,12 +65,12 @@ fn split_regions(map: &Vec<Vec<char>>) -> Vec<HashSet<(usize,usize)>>{
             if i+1<map.len() && map[i+1][j] == *c {
                 let groupa: usize = *group_by_coord.get(&(i,j)).unwrap();
                 let groupb: usize = *group_by_coord.get(&(i+1,j)).unwrap();
-                let newgroup = merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
+                merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
             }
             if j+1<line.len() && map[i][j+1] == *c {
                 let groupa: usize = *group_by_coord.get(&(i,j)).unwrap();
                 let groupb: usize = *group_by_coord.get(&(i,j+1)).unwrap();
-                let newgroup = merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
+                merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
             }
         }
     }
@@ -81,12 +81,12 @@ fn split_regions(map: &Vec<Vec<char>>) -> Vec<HashSet<(usize,usize)>>{
             if i>0 && map[i-1][j] == *c {
                 let groupa: usize = *group_by_coord.get(&(i,j)).unwrap();
                 let groupb: usize = *group_by_coord.get(&(i-1,j)).unwrap();
-                let newgroup = merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
+                merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
             }
             if j>0 && map[i][j-1] == *c {
                 let groupa: usize = *group_by_coord.get(&(i,j)).unwrap();
                 let groupb: usize = *group_by_coord.get(&(i,j-1)).unwrap();
-                let newgroup = merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
+                merge_groups(&mut coord_by_group, &mut group_by_coord, groupa, groupb);
             }
         }
     }
@@ -133,7 +133,6 @@ fn sides(region: &HashSet<(usize,usize)>) -> usize {
     while !segments.is_empty() {
         let one_seg = *segments.iter().next().unwrap();
         segments.remove(&one_seg);
-        let mut seg_length= 1;
         if one_seg.2 == Direction::Up || one_seg.2 == Direction::Down {
             let mut farthest_left = one_seg;
             let mut farthest_right = one_seg;

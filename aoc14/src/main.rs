@@ -3,7 +3,7 @@ use std::env;
 use regex::Regex;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use std::{thread, time};
+//use std::{thread, time};
 
 lazy_static! {
     static ref RE_BOT: Regex = Regex::new(r"p=(-?\d+),(-?\d+) v=(-?\d+),(-?\d+)").unwrap();
@@ -28,7 +28,7 @@ fn main() {
         let variance = variances(&moved);
         if variance < 900.0f32 {
             /*
-            let pic = make_picture(&moved);
+            let pic = _make_picture(&moved);
             println!("{}\nAfter {} moves, variance: {}", pic, i, variance);
             std::thread::sleep(time::Duration::from_millis(500));
             */
@@ -86,7 +86,7 @@ fn safety_factor(bots: &[(i32,i32)], width: i32, height: i32) -> i32 {
     result
 }
 
-fn make_picture(bots: &[(i32,i32)]) -> String {
+fn _make_picture(bots: &[(i32,i32)]) -> String {
     let mut res: String = String::new();
     for i in 0..103 {
         let s: String = (0..101)

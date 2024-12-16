@@ -31,7 +31,7 @@ fn count_instances(stone: usize, steps: usize, cache: &mut HashMap<(usize,usize)
     if let Some(&value) = cache.get(&(stone,steps)) {
         return value;
     }
-    let mut value = 0;
+    let value;
     if steps == 0 {
         value = 1
     } else if stone == 0 {
@@ -42,7 +42,7 @@ fn count_instances(stone: usize, steps: usize, cache: &mut HashMap<(usize,usize)
         value = count_instances(stone*2024, steps-1, cache)
     }
     cache.insert((stone,steps), value);
-    return value;
+    value
 }
 
 fn count_after_progression(stones: &[usize], steps: usize) -> usize {

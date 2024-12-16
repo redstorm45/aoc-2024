@@ -13,8 +13,8 @@ fn main() {
                        .map(|s| s.chars().collect())
                        .collect();
 
-    let mut count1 = count_xmas(&grid);
-    let mut count2 = count_masmas(&grid);
+    let count1 = count_xmas(&grid);
+    let count2 = count_masmas(&grid);
 
     println!("Result: {}", count1);
     println!("Result2: {}", count2);
@@ -43,7 +43,7 @@ fn count_xmas(grid: &Vec<Vec<char>>) -> usize {
                                             vec![None, None, Some('A'), None],
                                             vec![None, Some('M'), None, None],
                                             vec![Some('X'), None, None, None]]).len();
-    return count;
+    count
 }
 
 fn count_masmas(grid: &Vec<Vec<char>>) -> usize {
@@ -76,7 +76,7 @@ fn count_masmas(grid: &Vec<Vec<char>>) -> usize {
                                             vec![None, Some('S'), None]]).len();
                                             */
 
-    return count;
+    count
 }
 
 fn pattern_lookup(grid: &Vec<Vec<char>>, pat: &Vec<Vec<Option<char>>>) -> Vec<(usize,usize)>{
@@ -111,7 +111,7 @@ fn pattern_lookup(grid: &Vec<Vec<char>>, pat: &Vec<Vec<Option<char>>>) -> Vec<(u
         }
     }
 
-    return res;
+    res
 }
 
 
