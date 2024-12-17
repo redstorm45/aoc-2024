@@ -1,4 +1,6 @@
 
+use core::panic;
+use std::collections::VecDeque;
 use std::fs;
 use std::env;
 use itertools::Itertools;
@@ -17,12 +19,15 @@ First program:
 
 
 reverse
-loop 15:
- output 0
- a < 8
- b^1^4^0 = 0 => b=7
- startloop a=7
-
+ if must have failed => a = 0
+ out b%8   => b = 0
+ b^c -> b  => b^c = 0
+ a>>3 -> a => a in [0..7]
+ b^4 -> b  => (b^4)^c = 0
+ a>>b -> c => [explicit test all a] -> (a,b,c) in [..]
+ b^1 -> b  => (a,b,c) in [..]
+ a%8 -> b  => (a,b,c) in [..]
+ program must have looped -> a!=0
  */
 
 
@@ -163,8 +168,165 @@ fn run_until_halt(state: &mut MachineState, instructions: &[i8]) -> Vec<i8> {
     res
 }
 
-fn reverse_one_loop(state_after: MachineState, instructions: &[i8], result: i8) -> MachineState {
-    // find minimum value of register a such that instructions output result, and state becomes state_after
+#[derive(PartialEq, Eq)]
+enum Register{
+    A,
+    B,
+    C
+}
+
+// possible state of the program at an intermediate backtracking step
+// register is None if any value works
+struct BackTrackState {
+    program_counter: usize, // program counter after executing previous instruction
+    completed_output: usize, // number of outputs done up to this point (counting from end)
+    register_a: Option<i32>,
+    register_b: Option<i32>,
+    register_c: Option<i32>,
+    completed: bool, // start of the program has been reached
+}
+
+impl BackTrackState {
+    fn with_program_counter_diff(&self, pc_diff: isize) -> BackTrackState {
+        self.with_program_counter(((self.program_counter as isize)+pc_diff) as usize)
+    }
+    fn with_program_counter(&self, pc: usize) -> BackTrackState {
+        BackTrackState{
+            program_counter: pc,
+            completed_output: self.completed_output,
+            register_a: self.register_a,
+            register_b: self.register_b,
+            register_c: self.register_c,
+            completed: self.completed
+        }
+    }
+    fn with_completed(&self) -> BackTrackState {
+        BackTrackState{
+            program_counter: self.program_counter,
+            completed_output: self.completed_output,
+            register_a: self.register_a,
+            register_b: self.register_b,
+            register_c: self.register_c,
+            completed: true
+        }
+    }
+    fn with_register_a(&self, reg_a: Option<i32>) -> BackTrackState {
+        BackTrackState{
+            program_counter: self.program_counter,
+            completed_output: self.completed_output,
+            register_a: reg_a,
+            register_b: self.register_b,
+            register_c: self.register_c,
+            completed: self.completed
+        }
+    }
+    fn with_register_b(&self, reg_b: Option<i32>) -> BackTrackState {
+        BackTrackState{
+            program_counter: self.program_counter,
+            completed_output: self.completed_output,
+            register_a: self.register_a,
+            register_b: reg_b,
+            register_c: self.register_c,
+            completed: self.completed
+        }
+    }
+    fn with_register_c(&self, reg_c: Option<i32>) -> BackTrackState {
+        BackTrackState{
+            program_counter: self.program_counter,
+            completed_output: self.completed_output,
+            register_a: self.register_a,
+            register_b: self.register_b,
+            register_c: reg_c,
+            completed: self.completed
+        }
+    }
+    fn with_register(&self, reg: Register, value: Option<i32>) -> BackTrackState {
+        match reg {
+            Register::A => self.with_register_a(value),
+            Register::B => self.with_register_b(value),
+            Register::C => self.with_register_c(value),
+        }
+    }
+    fn get_register(&self, reg: Register) -> Option<i32> {
+        match reg {
+            Register::A => self.register_a,
+            Register::B => self.register_b,
+            Register::C => self.register_c
+        }
+    }
+}
+
+fn propose_shifting_backtracks(state: &BackTrackState, current_instruction: i8, current_arg: i8) -> Vec<BackTrackState> {
+    // group adv, bdc, cdv into one call
+    // reverses instructions (a/b/c) = a>>(a/b/c/0..3)
+    let target_register = match current_instruction {
+        0 => Register::A,
+        6 => Register::B,
+        7 => Register::C,
+        _ => panic!("Unsupported division")
+    };
+    match current_arg {
+        0..=3 => {
+            // fixed shift => remainder has been lost
+            if let Some(reg) = state.get_register(target_register) {
+                let mut res = vec![];
+                for remainder in 0..=(2<<current_arg) {
+                    res.push(
+                        state.with_program_counter_diff(-2)
+                             .with_register_a(Some((reg<<current_arg) + remainder))
+                    );
+                }
+                res
+            } else {
+                vec![state.with_program_counter_diff(-2)]
+            }
+        },
+        4..=6 => {
+            // variable shift, 
+        }
+        _ => {panic!("Unsupported division");}
+    }
+}
+
+fn propose_backtracks(state: &BackTrackState, next_output: Option<i8>, program: &[i8]) -> Vec<BackTrackState> {
+    // propose backtracking options for one state
+    let mut possibilities = vec![];
+    // TODO: backtracking of jmp here
+    // suppose there was no jmp
+
+    if state.program_counter == 0 {
+        possibilities.push(state.with_completed());
+    } else {
+        let prev_instruction = program[state.program_counter-2];
+        let prev_arg = program[state.program_counter-1];
+
+        match prev_instruction {
+            0 => { // adv   a>>arg -> a
+                possibilities.extend(propose_shifting_backtracks(state, prev_instruction, prev_arg));
+            },
+            _ => panic!("Unsupported instruction")
+        }
+    }
+
+    possibilities
+}
+
+fn backtrack_all(initial: BackTrackState, target_output: &[i8], program: &[i8]) -> Vec<BackTrackState> {
+    // backtrack all paths until start of the program
+    // does a breadth-first traversal until all roots (backtrack at start with complete output) are found
+    // and returns all those roots
+
+    // TODO: parse jmp table first, [targetaddress -> jmp address]
+
+    let mut to_explore : VecDeque<BackTrackState> = VecDeque::from([initial]);
+    let mut roots: Vec<BackTrackState> = vec![];
+
+    while to_explore.len() > 0 {
+        let exploredState = to_explore.pop_front().unwrap();
+
+    }
+
+    roots
 }
 
 #[cfg(test)]
