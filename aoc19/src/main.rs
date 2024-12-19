@@ -2,7 +2,6 @@ use core::hash;
 use std::fs;
 use std::env;
 use std::collections::HashMap;
-use std::path;
 use std::sync::atomic::AtomicUsize;
 //use regex;
 
@@ -16,11 +15,17 @@ fn main() {
 
     let available = parse_available(contents_it.next().unwrap());
     let validator = Validator::from(&available);
-    let possible = contents_it.next().unwrap().split('\n')
+    let patterns = contents_it.next().unwrap();
+    let possible = patterns.split_terminator('\n')
         .filter(|s| validator.is_match(s))
         .count();
 
+    let ways: usize = patterns.split_terminator('\n')
+        .map(|s| validator.count_arrangements(s))
+        .sum();
+
     println!("Result: {}", possible);
+    println!("Result2: {}", ways);
 }
 
 static COMPLETION_DICT_ID: AtomicUsize = AtomicUsize::new(0);
@@ -45,6 +50,7 @@ where T: hash::Hash,
             id: COMPLETION_DICT_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
         }
     }
+
     fn insert(&mut self, it: &mut dyn Iterator<Item=T>) {
         if let Some(elem) = it.next() {
             self.possibilities
@@ -55,6 +61,7 @@ where T: hash::Hash,
             self.is_complete = true;
         }
     }
+
     fn get(&self, item: &T) -> Option<&CompletionDict<T>> {
         self.possibilities.get(item).map(|boxed| boxed.as_ref())
     }
@@ -91,7 +98,7 @@ impl From<&Vec<&str>> for Validator {
 impl Validator {
     fn is_match(&self, s: &str) -> bool {
         let arr= self.count_arrangements(s);
-        println!("Test match {} gives {}", s, arr);
+        //println!("Test match {} gives {}", s, arr);
         arr > 0
     }
 
@@ -100,12 +107,12 @@ impl Validator {
         let mut heads: HashMap<usize,(&CompletionDict<char>,usize)> = HashMap::new();
         heads.insert(self.completions.id, (&self.completions,1));
         for c in s.chars() {
-            //println!("Match step {}", c);
+            //println!("Match step {} : {:?}", c, heads.keys());
             let mut new_heads = HashMap::new();
             for (head, path_count) in heads.values() {
                 if let Some(next) = head.get(&c) {
                     if next.is_complete {
-                        new_heads.entry(next.id).or_insert((&self.completions,0)).1 += path_count;
+                        new_heads.entry(self.completions.id).or_insert((&self.completions,0)).1 += path_count;
                     }
                     new_heads.entry(next.id).or_insert((next,0)).1 += path_count;
                 }
@@ -125,7 +132,7 @@ fn parse_available(s: &str) -> Vec<&str>{
 }
 
 /*
-fn build_validator(patterns: &[&str]) -> regex::Regex {
+fn build_validator_re(patterns: &[&str]) -> regex::Regex {
     let match_group = patterns.join("|");
     let pat = format!("^(?:{})+$", match_group);
     regex::Regex::new(pat.as_str()).unwrap()
@@ -148,5 +155,19 @@ mod tests {
             .count();
 
         assert_eq!(possible, 6);
+    }
+
+    #[test]
+    fn example_ways() {
+        let available = parse_available("r, wr, b, g, bwu, rb, gb, br");
+        let validator = Validator::from(&available);
+
+        println!("{:?}", validator.completions);
+
+        let ways: Vec<usize> = "brwrr\nbggr\ngbbr\nrrbgbr\nubwu\nbwurrg\nbrgr\nbbrgwb".split('\n')
+            .map(|s| validator.count_arrangements(s))
+            .collect();
+
+        assert_eq!(ways, vec![2, 1, 4, 6, 0, 1, 2, 0]);
     }
 }
