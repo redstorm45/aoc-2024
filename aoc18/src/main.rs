@@ -1,3 +1,5 @@
+#![allow(clippy::comparison_chain)]
+
 use std::fs;
 use std::env;
 use std::collections::{VecDeque,HashMap};
@@ -11,21 +13,22 @@ fn main() {
     let contents = fs::read_to_string(filename)
         .expect("Should have been able to read the file");
 
-    let mut laby = Map::empty(71, 71);
-    let allBlocks = parse_pos(&contents);
-    for (i,j) in allBlocks[..1024].iter() {
-        *laby.get_cell_mut((*j,*i)).unwrap() = Cell::Wall;
+    let laby = Map::empty(71, 71);
+    let mut fw_map = laby.clone();
+    let all_blocks = parse_pos(&contents);
+    for (i,j) in all_blocks[..1024].iter() {
+        *fw_map.get_cell_mut((*j,*i)).unwrap() = Cell::Wall;
     }
 
-    let shortest_info = explore_base_paths(&laby);
-    let path = best_path_from_infos(&laby, &shortest_info);
+    let shortest_info = explore_base_paths(&fw_map);
+    let path = best_path_from_infos(&fw_map, &shortest_info);
 
-    let shortestPathLen = path.iter().filter(|a| **a == Action::Forward).count();
+    let shortest_path_len = path.iter().filter(|a| **a == Action::Forward).count();
 
-    let first_blocker = first_blocker(laby, &allBlocks);
+    let first_blocker = first_blocker(laby, &all_blocks);
 
-    println!("Result: {}", shortestPathLen);
-    println!("Result2: {:?}", first_blocker);
+    println!("Result: {}", shortest_path_len);
+    println!("Result2: {},{}", first_blocker.0, first_blocker.1);
 }
 
 fn parse_pos(s: &str) -> Vec<(usize,usize)> {
@@ -46,7 +49,7 @@ enum Cell {
     Wall,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 struct Map {
     cells: Vec<Vec<Cell>>,
     start: (usize,usize),
@@ -71,6 +74,20 @@ impl Map {
     }
     fn get_cell_mut(&mut self, pos: (usize, usize)) -> Option<&mut Cell> {
         self.cells.get_mut(pos.0).and_then(|row| row.get_mut(pos.1))
+    }
+    fn _repr(&self) -> String {
+        let mut res: String = String::new();
+        for i in 0..self.cells.len() {
+            for j in 0..self.cells[i].len() {
+                if self.cells[i][j] == Cell::Wall {
+                    res += "#";
+                } else {
+                    res += ".";
+                }
+            }
+            res += "\n";
+        }
+        res
     }
 }
 
@@ -322,6 +339,7 @@ fn first_blocker(starting_map: Map, blocks: &[(usize,usize)]) -> (usize,usize) {
     while current_block+1 < blocks.len() {
         current_block += 1;
         let block_pos = blocks[current_block];
+        //let prev_map = map.clone();
         *map.get_cell_mut(block_pos).unwrap() = Cell::Wall;
         if shortest_path_pos.contains(&block_pos) {
             // block lies on best path: recompute
@@ -329,6 +347,8 @@ fn first_blocker(starting_map: Map, blocks: &[(usize,usize)]) -> (usize,usize) {
             if shortest_info.keys().filter(|(p,_)| *p==map.end).count() > 0 {
                 shortest_path_pos = best_path_pos_from_infos(&map, &shortest_info);
             } else {
+                //println!("{} Map after last block at {:?}", map._repr(), block_pos);
+                //println!("{} Map before", prev_map._repr());
                 return block_pos;
             }
         }
