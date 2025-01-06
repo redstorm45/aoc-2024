@@ -1,2 +1,3 @@
-aoc*/target
-aoc*/input
+target
+.vscode
+data/aoc*/input
